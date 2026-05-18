@@ -231,9 +231,13 @@ controller_window* getControllerWindow(unsigned ID){
 
 void controller_window_input(){
 	SDL_PumpEvents();
+	SDL_Event event;
+	while(SDL_PollEvent(&event)){
+		controller_sdl_events(&event);
+	}
 	for(unsigned i = 0; i<windows.size(); ++i){
+		if (windows[i].sdl_controller == nullptr) continue;
 		//GYROSCOPE
-		//if (SDL_GameControllerHasSensor(windows[i].sdl_controller, SDL_SENSOR_GYRO) && SDL_GameControllerIsSensorEnabled(windows[i].sdl_controller, SDL_SENSOR_GYRO)){
 		if (windows[i].gyro_enabled){
 			Uint64 timestamp = SDL_GetTicksNS() / 1000;
 			bool success = SDL_GetGamepadSensorData(windows[i].sdl_controller, SDL_SENSOR_GYRO, windows[i].gyro_data, 3);

@@ -1,6 +1,6 @@
 /*
 Simple DirectMedia Layer
-Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any damages
@@ -23,9 +23,17 @@ freely, subject to the following restrictions:
 #define SDL_time_h_
 
 /**
- *  \file SDL_time.h
+ * # CategoryTime
  *
- *  Header for the SDL realtime clock and date/time routines.
+ * SDL realtime clock and date/time routines.
+ *
+ * There are two data types that are used in this category: SDL_Time, which
+ * represents the nanoseconds since a specific moment (an "epoch"), and
+ * SDL_DateTime, which breaks time down into human-understandable components:
+ * years, months, days, hours, etc.
+ *
+ * Much of the functionality is involved in converting those two types to
+ * other useful forms.
  */
 
 #include <SDL3/SDL_error.h>
@@ -41,7 +49,7 @@ extern "C" {
  * A structure holding a calendar date and time broken down into its
  * components.
  *
- * \since This struct is available since SDL 3.0.0.
+ * \since This struct is available since SDL 3.2.0.
  */
 typedef struct SDL_DateTime
 {
@@ -59,7 +67,7 @@ typedef struct SDL_DateTime
 /**
  * The preferred date format of the current system locale.
  *
- * \since This enum is available since SDL 3.0.0.
+ * \since This enum is available since SDL 3.2.0.
  *
  * \sa SDL_GetDateTimeLocalePreferences
  */
@@ -73,7 +81,7 @@ typedef enum SDL_DateFormat
 /**
  * The preferred time format of the current system locale.
  *
- * \since This enum is available since SDL 3.0.0.
+ * \since This enum is available since SDL 3.2.0.
  *
  * \sa SDL_GetDateTimeLocalePreferences
  */
@@ -92,43 +100,49 @@ typedef enum SDL_TimeFormat
  * preference outside of your program.
  *
  * \param dateFormat a pointer to the SDL_DateFormat to hold the returned date
- *                   format, may be NULL
+ *                   format, may be NULL.
  * \param timeFormat a pointer to the SDL_TimeFormat to hold the returned time
- *                   format, may be NULL
- * \returns 0 on success or -1 on error; call SDL_GetError() for more
+ *                   format, may be NULL.
+ * \returns true on success or false on failure; call SDL_GetError() for more
  *          information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety This function is not thread safe.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_GetDateTimeLocalePreferences(SDL_DateFormat *dateFormat, SDL_TimeFormat *timeFormat);
+extern SDL_DECLSPEC bool SDLCALL SDL_GetDateTimeLocalePreferences(SDL_DateFormat *dateFormat, SDL_TimeFormat *timeFormat);
 
 /**
  * Gets the current value of the system realtime clock in nanoseconds since
  * Jan 1, 1970 in Universal Coordinated Time (UTC).
  *
- * \param ticks the SDL_Time to hold the returned tick count
- * \returns 0 on success or -1 on error; call SDL_GetError() for more
+ * \param ticks the SDL_Time to hold the returned tick count.
+ * \returns true on success or false on failure; call SDL_GetError() for more
  *          information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_GetCurrentTime(SDL_Time *ticks);
+extern SDL_DECLSPEC bool SDLCALL SDL_GetCurrentTime(SDL_Time *ticks);
 
 /**
  * Converts an SDL_Time in nanoseconds since the epoch to a calendar time in
  * the SDL_DateTime format.
  *
- * \param ticks the SDL_Time to be converted
- * \param dt the resulting SDL_DateTime
+ * \param ticks the SDL_Time to be converted.
+ * \param dt the resulting SDL_DateTime.
  * \param localTime the resulting SDL_DateTime will be expressed in local time
  *                  if true, otherwise it will be in Universal Coordinated
- *                  Time (UTC)
- * \returns 0 on success or -1 on error; call SDL_GetError() for more
+ *                  Time (UTC).
+ * \returns true on success or false on failure; call SDL_GetError() for more
  *          information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_TimeToDateTime(SDL_Time ticks, SDL_DateTime *dt, SDL_bool localTime);
+extern SDL_DECLSPEC bool SDLCALL SDL_TimeToDateTime(SDL_Time ticks, SDL_DateTime *dt, bool localTime);
 
 /**
  * Converts a calendar time to an SDL_Time in nanoseconds since the epoch.
@@ -136,14 +150,16 @@ extern DECLSPEC int SDLCALL SDL_TimeToDateTime(SDL_Time ticks, SDL_DateTime *dt,
  * This function ignores the day_of_week member of the SDL_DateTime struct, so
  * it may remain unset.
  *
- * \param dt the source SDL_DateTime
- * \param ticks the resulting SDL_Time
- * \returns 0 on success or -1 on error; call SDL_GetError() for more
+ * \param dt the source SDL_DateTime.
+ * \param ticks the resulting SDL_Time.
+ * \returns true on success or false on failure; call SDL_GetError() for more
  *          information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_DateTimeToTime(const SDL_DateTime *dt, SDL_Time *ticks);
+extern SDL_DECLSPEC bool SDLCALL SDL_DateTimeToTime(const SDL_DateTime *dt, SDL_Time *ticks);
 
 /**
  * Converts an SDL time into a Windows FILETIME (100-nanosecond intervals
@@ -151,15 +167,17 @@ extern DECLSPEC int SDLCALL SDL_DateTimeToTime(const SDL_DateTime *dt, SDL_Time 
  *
  * This function fills in the two 32-bit values of the FILETIME structure.
  *
- * \param ticks the time to convert
+ * \param ticks the time to convert.
  * \param dwLowDateTime a pointer filled in with the low portion of the
- *                      Windows FILETIME value
+ *                      Windows FILETIME value.
  * \param dwHighDateTime a pointer filled in with the high portion of the
- *                       Windows FILETIME value
+ *                       Windows FILETIME value.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC void SDLCALL SDL_TimeToWindows(SDL_Time ticks, Uint32 *dwLowDateTime, Uint32 *dwHighDateTime);
+extern SDL_DECLSPEC void SDLCALL SDL_TimeToWindows(SDL_Time ticks, Uint32 *dwLowDateTime, Uint32 *dwHighDateTime);
 
 /**
  * Converts a Windows FILETIME (100-nanosecond intervals since January 1,
@@ -168,51 +186,59 @@ extern DECLSPEC void SDLCALL SDL_TimeToWindows(SDL_Time ticks, Uint32 *dwLowDate
  * This function takes the two 32-bit values of the FILETIME structure as
  * parameters.
  *
- * \param dwLowDateTime the low portion of the Windows FILETIME value
- * \param dwHighDateTime the high portion of the Windows FILETIME value
- * \returns the converted SDL time
+ * \param dwLowDateTime the low portion of the Windows FILETIME value.
+ * \param dwHighDateTime the high portion of the Windows FILETIME value.
+ * \returns the converted SDL time.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC SDL_Time SDLCALL SDL_TimeFromWindows(Uint32 dwLowDateTime, Uint32 dwHighDateTime);
+extern SDL_DECLSPEC SDL_Time SDLCALL SDL_TimeFromWindows(Uint32 dwLowDateTime, Uint32 dwHighDateTime);
 
 /**
  * Get the number of days in a month for a given year.
  *
- * \param year the year
- * \param month the month [1-12]
- * \returns the number of days in the requested month, otherwise -1; call
+ * \param year the year.
+ * \param month the month [1-12].
+ * \returns the number of days in the requested month or -1 on failure; call
  *          SDL_GetError() for more information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_GetDaysInMonth(int year, int month);
+extern SDL_DECLSPEC int SDLCALL SDL_GetDaysInMonth(int year, int month);
 
 /**
  * Get the day of year for a calendar date.
  *
- * \param year the year component of the date
- * \param month the month component of the date
- * \param day the day component of the date
- * \returns the day of year [0-365] if the date is valid, otherwise -1; call
- *          SDL_GetError() for more information.
+ * \param year the year component of the date.
+ * \param month the month component of the date.
+ * \param day the day component of the date.
+ * \returns the day of year [0-365] if the date is valid or -1 on failure;
+ *          call SDL_GetError() for more information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_GetDayOfYear(int year, int month, int day);
+extern SDL_DECLSPEC int SDLCALL SDL_GetDayOfYear(int year, int month, int day);
 
 /**
  * Get the day of week for a calendar date.
  *
- * \param year the year component of the date
- * \param month the month component of the date
- * \param day the day component of the date
- * \returns a value between 0 and 6 (0 being Sunday) if the date is valid,
- *          otherwise -1; call SDL_GetError() for more information.
+ * \param year the year component of the date.
+ * \param month the month component of the date.
+ * \param day the day component of the date.
+ * \returns a value between 0 and 6 (0 being Sunday) if the date is valid or
+ *          -1 on failure; call SDL_GetError() for more information.
  *
- * \since This function is available since SDL 3.0.0.
+ * \threadsafety It is safe to call this function from any thread.
+ *
+ * \since This function is available since SDL 3.2.0.
  */
-extern DECLSPEC int SDLCALL SDL_GetDayOfWeek(int year, int month, int day);
+extern SDL_DECLSPEC int SDLCALL SDL_GetDayOfWeek(int year, int month, int day);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus

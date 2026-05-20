@@ -115,7 +115,7 @@ typedef struct controller_window_struct{
 	Uint64 gyro_time = 0;
 	int reset_gyro_button1 = -1;
 	int reset_gyro_button2 = -1;
-	int gyro_correction = 1;
+	int gyro_correction = 5;
 
 	bool calibrating = false;
 	double calibrate_start_time = 0.0;

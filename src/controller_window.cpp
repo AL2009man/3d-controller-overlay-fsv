@@ -490,8 +490,9 @@ void controller_sdl_events(SDL_Event* event){
 					float dt = (timestamp - windows[i].gyro_time) * 1e-9f;
 					windows[i].gyro_time = timestamp;
 					const float rad2deg = 57.29577951f; // 180/pi
+					const float deg2rad = 1.0f / rad2deg;
 					const float g = SDL_STANDARD_GRAVITY;
-						windows[i].gm->ProcessMotion(
+					windows[i].gm->ProcessMotion(
 						se->data[0] * rad2deg, se->data[1] * rad2deg, se->data[2] * rad2deg,
 						windows[i].accel_data[0] / g, windows[i].accel_data[1] / g, windows[i].accel_data[2] / g,
 						dt
@@ -499,16 +500,14 @@ void controller_sdl_events(SDL_Event* event){
 					if (windows[i].calibrating && glfwGetTime() - windows[i].calibrate_start_time >= 2.0) {
 						windows[i].gm->PauseContinuousCalibration();
 						windows[i].calibrating = false;
-						if (windows[i].auto_calibration){
+						if (windows[i].auto_calibration) {
 							windows[i].gm->SetCalibrationMode(GamepadMotionHelpers::Stillness | GamepadMotionHelpers::SensorFusion);
 						}
 					}
-					// Axis-angle quaternion integration
-					// derived from SDL testcontroller
-					// https://github.com/libsdl-org/SDL/blob/main/test/testcontroller.c
+					//GYRO INTEGRATION (axis-angle, derived from SDL testcontroller.c)
+					//https://github.com/libsdl-org/SDL/blob/main/test/testcontroller.c
 					float cx, cy, cz;
 					windows[i].gm->GetCalibratedGyro(cx, cy, cz);
-					const float deg2rad = 1.0f / rad2deg;
 					glm::vec3 gyro_vec(cx * deg2rad * dt, cy * deg2rad * dt, cz * deg2rad * dt);
 					float angle = glm::length(gyro_vec);
 					if (angle > 0.0f) {
@@ -516,17 +515,15 @@ void controller_sdl_events(SDL_Event* event){
 						windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * delta);
 					}
 					//GYRO CORRECTION
-					{
-						glm::mat3 rot = glm::mat3_cast(windows[i].gyro_quat);
-						glm::vec3 controller_up = glm::vec3(0.0f, 1.0f, 0.0f) * rot;
-						glm::vec3 up_error_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), controller_up);
-						if (glm::length(up_error_axis) > 0.0f)
-							windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.0001f, up_error_axis));
-						glm::vec3 controller_right = glm::vec3(1.0f, 0.0f, 0.0f) * rot;
-						glm::vec3 right_error_axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), controller_right);
-						if (glm::length(right_error_axis) > 0.0f)
-							windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.0001f, right_error_axis));
-					}
+					glm::mat3 rot = glm::mat3_cast(windows[i].gyro_quat);
+					glm::vec3 controller_up = glm::vec3(0.0f, 1.0f, 0.0f) * rot;
+					glm::vec3 up_error_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), controller_up);
+					if (glm::length(up_error_axis) > 0.0f)
+						windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.0001f, up_error_axis));
+					glm::vec3 controller_right = glm::vec3(1.0f, 0.0f, 0.0f) * rot;
+					glm::vec3 right_error_axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), controller_right);
+					if (glm::length(right_error_axis) > 0.0f)
+						windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.0001f, right_error_axis));
 					//RESET GYRO BUTTON COMBO
 					if (windows[i].reset_gyro_button1 > -1 && windows[i].reset_gyro_button2 > -1) {
 						if (SDL_GetGamepadButton(windows[i].sdl_controller, (SDL_GamepadButton)windows[i].reset_gyro_button1) &&

@@ -509,7 +509,7 @@ void drawSettingsWindow(){
 			if (ImGui::BeginCombo("Controllers", device_name.c_str(), 0)){
                 for (int i = 0; i < device_count; i++){
                     if (ImGui::Selectable(SDL_GetGamepadNameForID(devices[i]))){
-						SDL_AddGamepadMapping(current_window->default_mapping.c_str());
+						SDL_SetGamepadMapping(SDL_GetGamepadID(current_window->sdl_controller), current_window->default_mapping.c_str());
                         current_window->sdl_controller = SDL_OpenGamepad(devices[i]);
 						if(current_window->sdl_controller != NULL){
 							SDL_SetGamepadSensorEnabled(current_window->sdl_controller, SDL_SENSOR_GYRO, current_window->gyro_enabled);
@@ -1258,28 +1258,24 @@ void drawSettingsWindow(){
 							current_mapping[current_input] = binding_names[i];
 						}
 
-						SDL_Joystick* joystick = SDL_GetGamepadJoystick(getControllerWindow(tabs[selected_tab].ID)->sdl_controller);
-						if (joystick) {
-							SDL_GUID guid = SDL_GetJoystickGUID(joystick);
-							char guid_string[100] = {};
-							SDL_GUIDToString(guid, guid_string, 100);
-							////std::cout << "GUID for controller is : " << guid_string << std::endl;
-							std::string new_mapping = guid_string;
-							new_mapping.append(",");
-							new_mapping.append(SDL_GetGamepadName(current_window->sdl_controller));
-							new_mapping.append(",");
-							//new_mapping.append(",controller,");
-							for(int i = 0; i < 27; i++){
-								if (current_mapping[i] != ""){
-									new_mapping.append(mapping_names[i]);
-									new_mapping.append(":");
-									new_mapping.append(current_mapping[i]);
-									new_mapping.append(",");
-								}
+						SDL_Gamepad* cw = getControllerWindow(tabs[selected_tab].ID)->sdl_controller;
+						SDL_JoystickID instance_id = SDL_GetGamepadID(cw);
+						SDL_GUID guid = SDL_GetGamepadGUIDForID(instance_id);
+						char guid_string[100] = {};
+						SDL_GUIDToString(guid, guid_string, 100);
+						std::string new_mapping = guid_string;
+						new_mapping.append(",");
+						new_mapping.append(SDL_GetGamepadName(current_window->sdl_controller));
+						new_mapping.append(",");
+						for(int i = 0; i < 27; i++){
+							if (current_mapping[i] != ""){
+								new_mapping.append(mapping_names[i]);
+								new_mapping.append(":");
+								new_mapping.append(current_mapping[i]);
+								new_mapping.append(",");
 							}
-							std::cout << new_mapping << std::endl;
-							SDL_AddGamepadMapping(new_mapping.c_str());
 						}
+						SDL_SetGamepadMapping(instance_id, new_mapping.c_str());
 					}
 				}
 				ImGui::EndCombo();
@@ -1350,18 +1346,17 @@ void drawSettingsWindow(){
 								std::vector<std::string> mapping;
 								read_file(&mapping);
 								std::cout << "mapping file : " << mapping[0] << std::endl;
-								SDL_Joystick* joystick = SDL_GetGamepadJoystick(getControllerWindow(tabs[selected_tab].ID)->sdl_controller);
-								SDL_GUID guid = SDL_GetJoystickGUID(joystick);
+								SDL_Gamepad* cw = getControllerWindow(tabs[selected_tab].ID)->sdl_controller;
+								SDL_JoystickID instance_id = SDL_GetGamepadID(cw);
+								SDL_GUID guid = SDL_GetGamepadGUIDForID(instance_id);
 								char guid_string[100] = {};
 								SDL_GUIDToString(guid, guid_string, 100);
-								//std::cout << "GUID for controller is : " << guid_string << std::endl;
 								std::string mapping_string = guid_string;
 								mapping_string.append(",");
 								mapping_string.append(SDL_GetGamepadName(current_window->sdl_controller));
 								mapping_string.append(",");
 								mapping_string.append(mapping[0]);
-								std::cout << "mapping_string : " << mapping_string << std::endl;
-								SDL_AddGamepadMapping(mapping_string.c_str());
+								SDL_SetGamepadMapping(instance_id, mapping_string.c_str());
 								close_ifstream();
 								ImGui::CloseCurrentPopup();
 							}
@@ -1373,7 +1368,7 @@ void drawSettingsWindow(){
             }
 			ImGui::SameLine();
 			if (ImGui::Button("Default")){
-                SDL_AddGamepadMapping(current_window->default_mapping.c_str());
+				SDL_SetGamepadMapping(SDL_GetGamepadID(current_window->sdl_controller), current_window->default_mapping.c_str());
 			}
 		}
 		if (ImGui::CollapsingHeader("Help")){

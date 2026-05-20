@@ -24,15 +24,15 @@ void InitializeProgram(){
 
 void Input(){
 	glfwPollEvents();
-	
-	settings_window_input(gQuit);
-	controller_window_input();
-	
+
 	SDL_Event event;
 	while (SDL_PollEvent(&event)){
-    	settings_sdl_events(&event);	
+		settings_sdl_events(&event);
 		controller_sdl_events(&event);
 	}
+
+	settings_window_input(gQuit);
+	controller_window_input();
 }
 
 void Draw(){

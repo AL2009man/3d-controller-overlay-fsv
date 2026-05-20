@@ -230,46 +230,8 @@ controller_window* getControllerWindow(unsigned ID){
 }
 
 void controller_window_input(){
-	SDL_PumpEvents();
-	SDL_Event event;
-	while(SDL_PollEvent(&event)){
-		controller_sdl_events(&event);
-	}
 	for(unsigned i = 0; i<windows.size(); ++i){
 		if (windows[i].sdl_controller == nullptr) continue;
-		//GYROSCOPE
-		if (windows[i].gyro_enabled){
-			Uint64 timestamp = SDL_GetTicksNS() / 1000;
-			bool success = SDL_GetGamepadSensorData(windows[i].sdl_controller, SDL_SENSOR_GYRO, windows[i].gyro_data, 3);
-			if (success && windows[i].gyro_data[0] + windows[i].gyro_data[1] + windows[i].gyro_data[2] != 0){
-				if (windows[i].gyro_toggled){
-					windows[i].gyro_time = timestamp;
-					windows[i].gyro_toggled = false;
-				}else{
-        			windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_data[0] * (timestamp - windows[i].gyro_time) * 0.000001f, glm::vec3(1.0f, 0.0f, 0.0f));
-					windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_data[1] * (timestamp - windows[i].gyro_time) * 0.000001f, glm::vec3(0.0f, 1.0f, 0.0f));
-        			windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_data[2] * (timestamp - windows[i].gyro_time) * 0.000001f, glm::vec3(0.0f, 0.0f, 1.0f));
-					windows[i].gyro_time = timestamp;
-
-					//GYRO CORRECTION
-					glm::vec3 controller_up = glm::vec3(0.0f, 1.0f, 0.0f) * glm::mat3(windows[i].gyro_matrix);
-					glm::vec3 up_error_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(controller_up));
-					windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_correction * 0.0001f, up_error_axis);
-					
-					glm::vec3 controller_right = glm::vec3(1.0f, 0.0f, 0.0f) * glm::mat3(windows[i].gyro_matrix);
-					glm::vec3 right_error_axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), controller_right);
-					windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_correction * 0.0001f, right_error_axis);
-					
-					//RESET GYRO BUTTON COMBO
-					if (windows[i].reset_gyro_button1 > -1 && windows[i].reset_gyro_button2 > -1){
-						if(SDL_GetGamepadButton(windows[i].sdl_controller, (SDL_GamepadButton)windows[i].reset_gyro_button1) &&
-						   SDL_GetGamepadButton(windows[i].sdl_controller, (SDL_GamepadButton)windows[i].reset_gyro_button2)){
-							windows[i].gyro_matrix = glm::mat4(1.0f);
-						}
-					}
-				}
-        	}
-		}
 		//ACCELOROMETER
 		if (SDL_GamepadHasSensor(windows[i].sdl_controller, SDL_SENSOR_ACCEL) && SDL_GamepadSensorEnabled(windows[i].sdl_controller, SDL_SENSOR_ACCEL)){
 			//std::cout << "controller has accelerometer." << std::endl;
@@ -488,11 +450,50 @@ void controller_sdl_events(SDL_Event* event){
 					windows[i].default_mapping = mapping ? mapping : "";
 					SDL_free(mapping);
 					if (SDL_GamepadHasSensor(windows[i].sdl_controller, SDL_SENSOR_GYRO)){
-						SDL_SetGamepadSensorEnabled(windows[i].sdl_controller, SDL_SENSOR_GYRO, true);
+						SDL_SetGamepadSensorEnabled(windows[i].sdl_controller, SDL_SENSOR_GYRO, windows[i].gyro_enabled);
 					}
 				}else{
 					std::cout << "couldn't open sdl controller" << std::endl;
 					std::cout << SDL_GetError() << std::endl;
+				}
+			}
+		}
+	} else if (event->type == SDL_EVENT_GAMEPAD_SENSOR_UPDATE) {
+		SDL_GamepadSensorEvent* se = (SDL_GamepadSensorEvent*)event;
+		if (se->sensor == SDL_SENSOR_GYRO) {
+			for (unsigned i = 0; i < windows.size(); i++) {
+				if (windows[i].sdl_controller && SDL_GetGamepadID(windows[i].sdl_controller) == se->which) {
+					if (windows[i].gyro_enabled && se->data[0] + se->data[1] + se->data[2] != 0) {
+						Uint64 timestamp = se->sensor_timestamp;
+						if (windows[i].gyro_toggled) {
+							windows[i].gyro_time = timestamp;
+							windows[i].gyro_toggled = false;
+						} else {
+							float dt = (timestamp - windows[i].gyro_time) * 1e-9f;
+							windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, se->data[0] * dt, glm::vec3(1.0f, 0.0f, 0.0f));
+							windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, se->data[1] * dt, glm::vec3(0.0f, 1.0f, 0.0f));
+							windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, se->data[2] * dt, glm::vec3(0.0f, 0.0f, 1.0f));
+							windows[i].gyro_time = timestamp;
+
+							//GYRO CORRECTION
+							glm::vec3 controller_up = glm::vec3(0.0f, 1.0f, 0.0f) * glm::mat3(windows[i].gyro_matrix);
+							glm::vec3 up_error_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(controller_up));
+							windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_correction * 0.0001f, up_error_axis);
+
+							glm::vec3 controller_right = glm::vec3(1.0f, 0.0f, 0.0f) * glm::mat3(windows[i].gyro_matrix);
+							glm::vec3 right_error_axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), controller_right);
+							windows[i].gyro_matrix = glm::rotate(windows[i].gyro_matrix, windows[i].gyro_correction * 0.0001f, right_error_axis);
+
+							//RESET GYRO BUTTON COMBO
+							if (windows[i].reset_gyro_button1 > -1 && windows[i].reset_gyro_button2 > -1) {
+								if (SDL_GetGamepadButton(windows[i].sdl_controller, (SDL_GamepadButton)windows[i].reset_gyro_button1) &&
+								    SDL_GetGamepadButton(windows[i].sdl_controller, (SDL_GamepadButton)windows[i].reset_gyro_button2)) {
+									windows[i].gyro_matrix = glm::mat4(1.0f);
+								}
+							}
+						}
+					}
+					break;
 				}
 			}
 		}

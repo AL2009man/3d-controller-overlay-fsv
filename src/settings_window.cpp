@@ -903,17 +903,46 @@ void drawSettingsWindow(){
 			}
 		}
 		if (ImGui::CollapsingHeader("Gyro")){
+			if (ImGui::Button("Reset Gyro")){
+				current_window->gyro_quat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+				current_window->gm->ResetMotion();
+			}
 			if (SDL_GamepadHasSensor(current_window->sdl_controller, SDL_SENSOR_GYRO)){
 				if (ImGui::Checkbox("Enable Gyro", &current_window->gyro_enabled)){
 					SDL_SetGamepadSensorEnabled(current_window->sdl_controller, SDL_SENSOR_GYRO, current_window->gyro_enabled);
+					if (SDL_GamepadHasSensor(current_window->sdl_controller, SDL_SENSOR_ACCEL)){
+						SDL_SetGamepadSensorEnabled(current_window->sdl_controller, SDL_SENSOR_ACCEL, current_window->gyro_enabled);
+					}
 					if (current_window->gyro_enabled){
 						current_window->gyro_toggled = true;
 					}
 				}
-				ImGui::SliderInt("Gyro Correction", &current_window->gyro_correction, 0, 10);
-				if (ImGui::Button("Reset Gyro")){
-					current_window->gyro_matrix = glm::mat4(1.0f);
+				if (current_window->gyro_enabled){
+				ImGui::SameLine();
+				if (current_window->calibrating) {
+					float progress = (float)(glfwGetTime() - current_window->calibrate_start_time) / 2.0f;
+					float barWidth = ImGui::CalcTextSize("Calibrating...").x + ImGui::GetStyle().FramePadding.x * 2;
+					ImGui::ProgressBar(progress, ImVec2(barWidth, 0.0f), "Calibrating...");
+				} else {
+					if (ImGui::Button("Calibrate Gyro")){
+						current_window->gm->ResetContinuousCalibration();
+						current_window->gm->StartContinuousCalibration();
+						if (current_window->auto_calibration){
+							current_window->gm->SetCalibrationMode(GamepadMotionHelpers::Manual);
+						}
+						current_window->calibrating = true;
+						current_window->calibrate_start_time = glfwGetTime();
+					}
 				}
+				ImGui::SameLine();
+				if (ImGui::Checkbox("Gyro Auto-Calibration", &current_window->auto_calibration)){
+					if (current_window->auto_calibration){
+						current_window->gm->SetCalibrationMode(GamepadMotionHelpers::Stillness | GamepadMotionHelpers::SensorFusion);
+					} else {
+						current_window->gm->SetCalibrationMode(GamepadMotionHelpers::Manual);
+					}
+				}
+				ImGui::SliderInt("Gyro Correction", &current_window->gyro_correction, 0, 10);
 				ImGui::NewLine();
 				ImGui::Text("Reset Gyro button combo");
 				std::string button1_name = "";
@@ -960,6 +989,7 @@ void drawSettingsWindow(){
 					}
 					ImGui::EndCombo();
 				}
+				} // gyro_enabled
 			}else{
 				ImGui::Text("No Gyroscope detected for selected controller.");
 			}
@@ -1778,7 +1808,7 @@ void loadTabs(){
 			if (line == "reset gyro button 1")
 				getControllerWindow(tabs.back().ID)->reset_gyro_button1 = std::stoi(lines[line_index + 1]);
 			if (line == "reset gyro button 2")
-				getControllerWindow(tabs.back().ID)->reset_gyro_button2 = std::stoi(lines[line_index + 1]);	
+				getControllerWindow(tabs.back().ID)->reset_gyro_button2 = std::stoi(lines[line_index + 1]);
 			if (line == "gyro correction")
 				getControllerWindow(tabs.back().ID)->gyro_correction = std::stoi(lines[line_index + 1]);
 			line_index++;

@@ -1,14 +1,18 @@
+#define _USE_MATH_DEFINES
 #ifndef CONTROLLER_WINDOW_H
 #define CONTROLLER_WINDOW_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "stb_image.h"
+#include "GamepadMotionHelper/GamepadMotion.hpp"
 
 #include <math.h>
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <string>
 
@@ -104,17 +108,22 @@ typedef struct controller_window_struct{
 	glm::vec3 freelook_position = glm::vec3(0.0f, 0.5f, 3.0f);
 	glm::vec3 freelook_direction = glm::vec3(0.0f, 0.0f, -1.0f);
 
-	glm::mat4 gyro_matrix = glm::mat4(1.0f);
+	glm::quat gyro_quat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	bool gyro_toggled = true;
 	bool gyro_enabled = false;
 	float gyro_data[3] = {0.0f, 0.0f, 0.0f};
 	Uint64 gyro_time = 0;
 	int reset_gyro_button1 = -1;
 	int reset_gyro_button2 = -1;
-	int gyro_correction = 5;
+	int gyro_correction = 1;
+
+	bool calibrating = false;
+	double calibrate_start_time = 0.0;
+	bool auto_calibration = false;
 
 	float accel_data[3] = {0.0f, 0.0f, 0.0f};
-	Uint64 accel_time = 0;
+
+	std::unique_ptr<GamepadMotion> gm = std::make_unique<GamepadMotion>();
 	
 	glm::mat4 view_matrix = glm::mat4(1.0f);
 	glm::mat4 projection_matrix = glm::mat4(1.0f);

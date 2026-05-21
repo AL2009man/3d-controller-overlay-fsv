@@ -903,10 +903,6 @@ void drawSettingsWindow(){
 			}
 		}
 		if (ImGui::CollapsingHeader("Gyro")){
-			if (ImGui::Button("Reset Gyro")){
-				current_window->gyro_quat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-				current_window->gm->ResetMotion();
-			}
 			if (SDL_GamepadHasSensor(current_window->sdl_controller, SDL_SENSOR_GYRO)){
 				if (ImGui::Checkbox("Enable Gyro", &current_window->gyro_enabled)){
 					SDL_SetGamepadSensorEnabled(current_window->sdl_controller, SDL_SENSOR_GYRO, current_window->gyro_enabled);
@@ -940,6 +936,20 @@ void drawSettingsWindow(){
 						current_window->gm->SetCalibrationMode(GamepadMotionHelpers::Stillness | GamepadMotionHelpers::SensorFusion);
 					} else {
 						current_window->gm->SetCalibrationMode(GamepadMotionHelpers::Manual);
+					}
+				}
+				if (current_window->auto_calibration) {
+					if (current_window->calibrating) {
+						ImGui::TextDisabled("[Auto-Calibration is paused...]");
+					} else {
+						float conf = current_window->gm->GetAutoCalibrationConfidence();
+						bool steady = current_window->gm->GetAutoCalibrationIsSteady();
+						ImGui::Text("Auto-Calibration Confidence: %.0f%%", conf * 100.0f);
+						ImGui::SameLine();
+						if (steady)
+							ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Steady]");
+						else
+							ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "[Movement]");
 					}
 				}
 				ImGui::SliderInt("Gyro Correction", &current_window->gyro_correction, 0, 10);
@@ -990,6 +1000,9 @@ void drawSettingsWindow(){
 					ImGui::EndCombo();
 				}
 				} // gyro_enabled
+				if (ImGui::Button("Reset Gyro")){
+					current_window->gyro_quat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+				}
 			}else{
 				ImGui::Text("No Gyroscope detected for selected controller.");
 			}
@@ -1566,6 +1579,7 @@ void saveTabs(){
 		write_int(std::string("reset gyro button 1"), getControllerWindow(t.ID)->reset_gyro_button1);
 		write_int(std::string("reset gyro button 2"), getControllerWindow(t.ID)->reset_gyro_button2);
 		write_int(std::string("gyro correction"), getControllerWindow(t.ID)->gyro_correction);
+		write_int(std::string("gyro auto-calibration"), getControllerWindow(t.ID)->auto_calibration);
 		//Lighting
 		write_int(std::string("direct lights"), getControllerWindow(t.ID)->direct_lights.size());
 		for(int i=0; i<(int)getControllerWindow(t.ID)->direct_lights.size(); i++){
@@ -1811,6 +1825,11 @@ void loadTabs(){
 				getControllerWindow(tabs.back().ID)->reset_gyro_button2 = std::stoi(lines[line_index + 1]);
 			if (line == "gyro correction")
 				getControllerWindow(tabs.back().ID)->gyro_correction = std::stoi(lines[line_index + 1]);
+			if (line == "gyro auto-calibration") {
+				getControllerWindow(tabs.back().ID)->auto_calibration = std::stoi(lines[line_index + 1]);
+				if (getControllerWindow(tabs.back().ID)->auto_calibration)
+					getControllerWindow(tabs.back().ID)->gm->SetCalibrationMode(GamepadMotionHelpers::Stillness | GamepadMotionHelpers::SensorFusion);
+			}
 			line_index++;
 			//Direct Lights
 			if (line == "direct lights"){

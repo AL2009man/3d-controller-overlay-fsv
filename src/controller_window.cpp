@@ -127,6 +127,9 @@ void createControllerWindow(std::string title, std::string model_path){
 		if (SDL_GamepadHasSensor(w.sdl_controller, SDL_SENSOR_GYRO)){
 			SDL_SetGamepadSensorEnabled(w.sdl_controller, SDL_SENSOR_GYRO, true);
 		}
+		if (SDL_GamepadHasSensor(w.sdl_controller, SDL_SENSOR_ACCEL)){
+			SDL_SetGamepadSensorEnabled(w.sdl_controller, SDL_SENSOR_ACCEL, true);
+		}
 		w.gyro_quat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 	}else{
 		std::cout << "couldn't open sdl controller." << std::endl;
@@ -484,7 +487,7 @@ void controller_sdl_events(SDL_Event* event){
 				Uint64 timestamp = se->sensor_timestamp;
 				if (windows[i].gyro_toggled) {
 					windows[i].gyro_time = timestamp;
-					windows[i].gm->ResetMotion();
+						windows[i].gyro_quat = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 					windows[i].gyro_toggled = false;
 				} else {
 					float dt = (timestamp - windows[i].gyro_time) * 1e-9f;
@@ -515,15 +518,17 @@ void controller_sdl_events(SDL_Event* event){
 						windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * delta);
 					}
 					//GYRO CORRECTION
-					glm::mat3 rot = glm::mat3_cast(windows[i].gyro_quat);
-					glm::vec3 controller_up = glm::vec3(0.0f, 1.0f, 0.0f) * rot;
-					glm::vec3 up_error_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), controller_up);
-					if (glm::length(up_error_axis) > 0.0f)
-						windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.0001f, up_error_axis));
-					glm::vec3 controller_right = glm::vec3(1.0f, 0.0f, 0.0f) * rot;
-					glm::vec3 right_error_axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), controller_right);
-					if (glm::length(right_error_axis) > 0.0f)
-						windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.0001f, right_error_axis));
+					if (windows[i].gyro_correction != 0) {
+						glm::mat3 rot = glm::mat3_cast(windows[i].gyro_quat);
+						glm::vec3 controller_up = glm::vec3(0.0f, 1.0f, 0.0f) * rot;
+						glm::vec3 up_error_axis = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), controller_up);
+						if (glm::length(up_error_axis) > 0.0f)
+							windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.025f * dt, glm::normalize(up_error_axis)));
+						glm::vec3 controller_right = glm::vec3(1.0f, 0.0f, 0.0f) * rot;
+						glm::vec3 right_error_axis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), controller_right);
+						if (glm::length(right_error_axis) > 0.0f)
+							windows[i].gyro_quat = glm::normalize(windows[i].gyro_quat * glm::angleAxis(windows[i].gyro_correction * 0.025f * dt, glm::normalize(right_error_axis)));
+					}
 					//RESET GYRO BUTTON COMBO
 					if (windows[i].reset_gyro_button1 > -1 && windows[i].reset_gyro_button2 > -1) {
 						if (SDL_GetGamepadButton(windows[i].sdl_controller, (SDL_GamepadButton)windows[i].reset_gyro_button1) &&
